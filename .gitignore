@@ -1,0 +1,7 @@
+.idea/
+.venv/
+.env
+*.xml
+*.iml
+*.idea
+*.json
