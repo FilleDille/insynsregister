@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import smtplib
 import os
 import sys
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 
 load_dotenv()
@@ -81,18 +83,58 @@ def send_email(new_data):
     cc: str = os.getenv('CC')
     app_pw: str = os.getenv('APP_PW')
 
-    message = ('Subject: Ändringar i insynsregistret för Cereno Scientific\n\nFöljande har skett: {}'
-               .format(new_data).encode('utf-8'))
+    table_html = '<table border="1"><thead><tr><th>Pub. Date</th><th>Emittent</th><th>Person Ledande Ställning</th>' \
+                 '<th>Befattning</th><th>Närstående</th><th>Karaktär</th><th>Instrumentnamn</th><th>Instrumenttyp</th>' \
+                 '<th>ISIN</th><th>Transaktionsdatum</th><th>Volym</th><th>Volymsenhet</th><th>Pris</th><th>Valuta</th>' \
+                 '<th>Status</th><th>Detaljer</th></tr></thead><tbody>'
+
+    for data in new_data:
+        table_html += '<tr>'
+        table_html += f'<td>{data.pub_date}</td>'
+        table_html += f'<td>{data.emittent}</td>'
+        table_html += f'<td>{data.person_ledande_stallning}</td>'
+        table_html += f'<td>{data.befattning}</td>'
+        table_html += f'<td>{data.narstaende}</td>'
+        table_html += f'<td>{data.karaktar}</td>'
+        table_html += f'<td>{data.instrumentnamn}</td>'
+        table_html += f'<td>{data.instrumenttyp}</td>'
+        table_html += f'<td>{data.isin}</td>'
+        table_html += f'<td>{data.transaktionsdatum}</td>'
+        table_html += f'<td>{data.volym}</td>'
+        table_html += f'<td>{data.volymsenhet}</td>'
+        table_html += f'<td>{data.pris}</td>'
+        table_html += f'<td>{data.valuta}</td>'
+        table_html += f'<td>{data.status}</td>'
+        table_html += f'<td>{data.detaljer}</td>'
+        table_html += '</tr>'
+
+    table_html += '</tbody></table>'
+
+    html_content = f'''
+        <html>
+            <body>
+                <p>Följande har skett:</p>
+                {table_html}
+            </body>
+        </html>
+    '''
+
+    subject = 'Ändringar i insynsregistret för Cereno Scientific'  # Set the subject here
+
+    message = MIMEMultipart()
+    message['Subject'] = subject
+    message.attach(MIMEText(html_content, 'html'))
 
     try:
         s = smtplib.SMTP('smtp.gmail.com', 587)
         s.starttls()
         s.login(email, app_pw)
-        s.sendmail(email, [email, cc], message)
+        s.sendmail(email, [email, cc], message.as_string())  # Convert the message to a string here
         s.quit()
 
     except Exception as e:
         print(e)
+
 
 
 if __name__ == '__main__':
