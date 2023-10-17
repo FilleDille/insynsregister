@@ -2,6 +2,17 @@ import requests as rq
 from dataclasses import dataclass
 from bs4 import BeautifulSoup
 import json
+from dotenv import load_dotenv
+import smtplib
+import os
+import sys
+
+
+load_dotenv()
+if sys.platform == "darwin":
+    current_subdir: str = os.getenv('MAC')
+else:
+    current_subdir: str = os.getenv('LINUX')
 
 
 @dataclass
@@ -22,7 +33,6 @@ class RowData:
     valuta: str
     status: str
     detaljer: str
-
 
 
 def main():
@@ -49,9 +59,10 @@ def main():
             data_list.append(data)
 
     existing_data = []
+    current_dir: str = os.path.expanduser('~') + current_subdir
 
     try:
-        with open('senaste_listan.json', 'r') as json_file:
+        with open(current_dir + 'senaste_listan.json', 'r') as json_file:
             existing_data = [RowData(**row_data) for row_data in json.load(json_file)]
     except FileNotFoundError:
         pass
@@ -59,16 +70,29 @@ def main():
     new_data = [data for data in data_list if data not in existing_data]
 
     if new_data:
-        print("Ny data:")
-        for data in new_data:
-            print(data)
+        send_email(new_data)
 
-    save_to_json(data_list)
-
-
-def save_to_json(data_list):
-    with open('senaste_listan.json', 'w') as json_file:
+    with open(current_dir + 'senaste_listan.json', 'w') as json_file:
         json.dump([vars(data) for data in data_list], json_file, indent=4)
+
+
+def send_email(new_data):
+    email: str = os.getenv('EMAIL')
+    cc: str = os.getenv('CC')
+    app_pw: str = os.getenv('APP_PW')
+
+    message = ('Subject: Ändringar i insynsregistret för Cereno Scientific\n\nFöljande har skett: {}'
+               .format(new_data).encode('utf-8'))
+
+    try:
+        s = smtplib.SMTP('smtp.gmail.com', 587)
+        s.starttls()
+        s.login(email, app_pw)
+        s.sendmail(email, [email, cc], message)
+        s.quit()
+
+    except Exception as e:
+        print(e)
 
 
 if __name__ == '__main__':
